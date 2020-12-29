@@ -15,10 +15,10 @@ class RadiometerDaemon:
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define CAN and LCM interfaces, and subscribe to input."""
-        self.serial = serial.Serial(dev, baudrate=19200, timeout=0.1)
+        self.serial = serial.Serial(dev, baudrate=115200, timeout=0.1)
         self.lcm = lcm.LCM()
         self.prefix = prefix
-        self.pkt = struct.Struct('!HH')
+        self.pkt = struct.Struct('!3H')
 
         self.subscriptions = []
         self.subscriptions.append(self.lcm.subscribe(
@@ -37,17 +37,25 @@ class RadiometerDaemon:
 
     def serial_handler(self):
         """Receive data on serial port and send on LCM."""
-        rx = self.serial.read(4)
-        if rx is None:
+        hdr = self.serial.read(2)
+        if hdr is None:
             print('tried to handle empty serial message queue')
-        else:
+        elif len(hdr) == 2 and hdr[0] == int('fc', 16):
+            rx = self.serial.read(6)
+            (u, c, d) = self.pkt.unpack(rx)
             tx = radiometer_t()
             tx.utime = int(time.time() * 1e6)
-            (tx.cumulative_count, tx.cumulative_duration) = self.pkt.unpack(rx)
+            tx.cumulative_count = c
+            tx.cumulative_duration = d
             self.lcm.publish("{0}o".format(self.prefix), tx.encode())
+        elif len(hdr) == 2 and hdr[0] == int('fd', 16):
+            print('rx heartbeat message')
+        else:
+            print("unknown header: {0:x}".format(hdr))
+            self.serial.flushInput()
 
     def connect(self):
-        """Connect CAN to LCM and loop with epoll."""
+        """Connect serial to LCM and loop with epoll."""
         epoll = select.epoll()
         epoll.register(self.lcm.fileno(), select.EPOLLIN)
         epoll.register(self.serial.fileno(), select.EPOLLIN)

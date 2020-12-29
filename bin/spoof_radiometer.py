@@ -23,7 +23,7 @@ class SpoofedRadiometer(serial.Serial):
         if 'port' not in kw:
             kw['port'] = '/dev/ttyUSB1'
         if 'baudrate' not in kw:
-            kw['baudrate'] = 19200
+            kw['baudrate'] = 115200
         if 'bytesize' not in kw:
             kw['bytesize'] = 8
         if 'parity' not in kw:
@@ -37,13 +37,13 @@ class SpoofedRadiometer(serial.Serial):
         if 'rtscts' not in kw:
             kw['rtscts'] = 0
 
-        self.pkt = struct.Struct('!HH')
+        self.pkt = struct.Struct('!4H')
 
         super(SpoofedRadiometer, self).__init__(**kw)
 
 
     def publish(self, count=1, duration=1):
-        self.write(self.pkt.pack(count, duration))
+        self.write(self.pkt.pack(0xfc00, 0, count, duration))
         self.flush()
 
     def serve(self, frequency=1000):
