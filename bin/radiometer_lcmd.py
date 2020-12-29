@@ -15,7 +15,7 @@ class RadiometerDaemon:
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define CAN and LCM interfaces, and subscribe to input."""
-        self.serial = serial.Serial(dev, baudrate=115200, timeout=0.1)
+        self.serial = serial.Serial(dev, baudrate=19200, timeout=0.1)
         self.lcm = lcm.LCM()
         self.prefix = prefix
         self.pkt = struct.Struct('!HH')

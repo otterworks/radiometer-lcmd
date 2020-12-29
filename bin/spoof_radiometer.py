@@ -23,7 +23,7 @@ class SpoofedRadiometer(serial.Serial):
         if 'port' not in kw:
             kw['port'] = '/dev/ttyUSB1'
         if 'baudrate' not in kw:
-            kw['baudrate'] = 115200
+            kw['baudrate'] = 19200
         if 'bytesize' not in kw:
             kw['bytesize'] = 8
         if 'parity' not in kw:
