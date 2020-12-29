@@ -61,7 +61,7 @@ class SpoofedRadiometer(serial.Serial):
                     if fileno == tfd.fileno():
                         self.publish()
                     else:
-                        print(f'unexpected file #: {fileno}')
+                        print('unexpected file #: {0}'.format(fileno))
         except KeyboardInterrupt:
             print('Stopped by CTRL-C')
         finally:
