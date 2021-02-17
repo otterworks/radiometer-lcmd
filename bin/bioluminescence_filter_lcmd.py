@@ -23,9 +23,9 @@ from mesobot_lcmtypes.marine_sensor import radiometer_t
 
 class BioluminescenceFilter:
 
-    def __init__(self, maxlen=2000, verbose=0):
+    def __init__(self, width=2000, verbose=0):
         self.lcm = lcm.LCM()
-        self.data = deque(maxlen=maxlen)
+        self.data = deque(maxlen=width)
         self.verbose = verbose
 
     def estimate_ambient(self,):
@@ -45,7 +45,11 @@ class BioluminescenceFilter:
             tx = radiometer_t()
             tx.utime = rx.utime
             tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
+            print(tx.downwelling_photon_spherical_irradiance)
             self.lcm.publish("{0}f".format(channel), tx.encode())
+        else:
+            print("window not full: {0} < {1}".format(len(self.data),
+                self.data.maxlen))
 
     def filter(self, channel='RADo'):
         """Connect to LCM and handle."""
@@ -59,9 +63,9 @@ class BioluminescenceFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RADo', verbose=0):
+def main(channel='RADo', width=2000, verbose=0):
     """Run as a daemon."""
-    bf = BioluminescenceFilter(verbose=verbose)
+    bf = BioluminescenceFilter(width=width, verbose=verbose)
     bf.filter(channel);
 
 
