@@ -14,12 +14,11 @@ from collections import deque
 from numpy import median
 
 from mesobot_lcmtypes.raw import bytes_t
-# from mesobot_lcmtypes.marine_sensor import radiometer_t
+from mesobot_lcmtypes.marine_sensor import radiometer_t
 # downwelling_photon_spherical_irradiance mol m-2 s-1
 # | downwelling_photon_flux_in_sea_water mol m-2 s-1
 # | downwelling_photon_radiance_in_sea_water mol m-2 s-1 sr-1
 # + bioluminescent_photon_rate_in_sea_water s-1 m-3
-from mesobot_lcmtypes.raw import string_t
 
 
 class BioluminescenceFilter:
@@ -43,11 +42,9 @@ class BioluminescenceFilter:
         fmt = '<8x{0}H'.format(int((rx.length-8)/2)) # nominal 2HL50H, but we just want 50H
         self.data.extend(struct.unpack(fmt, rx.data))
         if len(self.data) == self.data.maxlen:
-            # tx = radiometer_t()
-            tx = string_t()
+            tx = radiometer_t()
             tx.utime = rx.utime
-            # tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
-            tx.text = "median(photons) = {0}".format(self.estimate_ambient())
+            tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
             self.lcm.publish("{0}f".format(channel), tx.encode())
 
     def filter(self, channel='RADo'):
