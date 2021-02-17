@@ -7,6 +7,8 @@ import struct
 import time
 import lcm
 
+from collections import deque
+
 from mesobot_lcmtypes.raw import bytes_t
 
 
@@ -18,10 +20,10 @@ class RadiometerDaemon:
         self.serial = serial.Serial(dev, baudrate=38400, timeout=0.1)
         self.lcm = lcm.LCM()
         self.prefix = prefix
-        self.hdr = struct.Struct('<H') # one uint16
-        self.clkpkt = struct.Struct('<H2L') # 2 unsigned long bytes (ISR clock cycles, LOG clock cycles)
-        self.hrtpkt = struct.Struct('<H5L') # 5 unsigned long bytes (UTC, Pulse count, nsHI, irradiance, end token)
-        self.datpkt = struct.Struct('<HL50H')
+        self.hdr = deque(maxlen = 4)
+        self.clkpkt = struct.Struct('<2L') # 2 unsigned long bytes (ISR clock cycles, LOG clock cycles)
+        self.hrtpkt = struct.Struct('<5L') # 5 unsigned long bytes (UTC, Pulse count, nsHI, irradiance, end token)
+        self.datpkt = struct.Struct('<L50H')
 
         self.subscriptions = []
         self.subscriptions.append(self.lcm.subscribe(
@@ -40,31 +42,42 @@ class RadiometerDaemon:
 
     def serial_handler(self):
         """Receive data on serial port and send on LCM."""
-        hdr = self.serial.read(2)
-        if hdr is None:
-            print('tried to handle empty serial message queue')
-        elif len(hdr) == 2 and self.hdr.unpack(hdr) == 0xFF: # clock packet
-            rx = self.serial.read(self.clkpkt.size)
-            (h, ISR, LOG) = self.clkpkt.unpack(rx)
-            print("ISR: {0}, LOG: {1}".format(ISR,LOG))
-            # self.lcm.publish("{0}_hdr".format(self.prefix), head.encode())
-        elif len(hdr) == 2 and self.hdr.unpack(hdr) == 0xFE: # heartbeat
-            print('rx heartbeat message')
-            rx = self.serial.read(self.hrtpkt.size)
-            hbval = self.hbpkt.unpack(rx)
-            print("{0}\n".format(hbval))
-            # self.lcm.publish("{0}_hb".format(self.prefix), heartbeat.encode())
-        else: # shouldn't we have a positive identifier, according to Jan15 email?
-            rx = self.serial.read(self.datpkt.size)
-            if(len(rx) != self.datpkt.size):
-                print("unknown header: {0:x}".format(hdr))
-                self.serial.flushInput()
+        self.hdr.clear()
+        self.hdr.extend(self.serial.read(4))
+        while(self.serial.in_waiting > 0):
+            # assert (len(self.hdr) == self.hdr.maxlen), "header too short"
+            bsh = bytes(self.hdr)
+            if bsh == b'\xff\x00\xff\x00':
+                suffix = 'o'
+                pkt_size = self.datpkt.size
+            elif bsh == b'\xff\x00\xfe\x00':
+                suffix = 'h'
+                pkt_size = self.hrtpkt.size
+            elif bsh == b'\xff\x00\xfd\x00':
+                suffix = 'c'
+                pkt_size = self.clkpkt.size
             else:
-                tx = bytes_t()
-                tx.utime = int(time.time() * 1e6)
-                tx.length = self.datpkt.size + self.hdr.size
-                tx.data = hdr + rx
-                self.lcm.publish("{0}o".format(self.prefix), tx.encode())
+                suffix = 'r'
+                pkt_size = 0
+                print(bytes(self.hdr).hex(' '))
+
+            self.handle_pkt(suffix, pkt_size)
+            if pkt_size == 0:
+                print(' <<=')
+                self.hdr.extend(self.serial.read(1))
+                print(bytes(self.hdr).hex(' '))
+                print('____')
+
+    def handle_pkt(self, suffix='r', sz=108):
+        rx = self.serial.read(sz)
+        if(len(rx) == sz):
+            tx = bytes_t()
+            tx.utime = int(time.time() * 1e6)
+            tx.length = len(self.hdr) + sz
+            tx.data = bytes(self.hdr) + rx
+            self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
+        else:
+            print('tried to read {0} but only got {1}'.format(sz, len(rx)))
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
