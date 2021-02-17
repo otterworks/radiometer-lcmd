@@ -7,18 +7,21 @@ import struct
 import time
 import lcm
 
-from mesobot_lcmtypes.marine_sensor import radiometer_t
+from mesobot_lcmtypes.raw import bytes_t
 
 
 class RadiometerDaemon:
     """LCM daemon for radiometer."""
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
-        """Define CAN and LCM interfaces, and subscribe to input."""
-        self.serial = serial.Serial(dev, baudrate=115200, timeout=0.1)
+        """Define serial and LCM interfaces, and subscribe to input."""
+        self.serial = serial.Serial(dev, baudrate=38400, timeout=0.1)
         self.lcm = lcm.LCM()
         self.prefix = prefix
-        self.pkt = struct.Struct('!3H')
+        self.hdr = struct.Struct('<H') # one uint16
+        self.clkpkt = struct.Struct('<H2L') # 2 unsigned long bytes (ISR clock cycles, LOG clock cycles)
+        self.hrtpkt = struct.Struct('<H5L') # 5 unsigned long bytes (UTC, Pulse count, nsHI, irradiance, end token)
+        self.datpkt = struct.Struct('<HL50H')
 
         self.subscriptions = []
         self.subscriptions.append(self.lcm.subscribe(
@@ -40,19 +43,28 @@ class RadiometerDaemon:
         hdr = self.serial.read(2)
         if hdr is None:
             print('tried to handle empty serial message queue')
-        elif len(hdr) == 2 and hdr[0] == int('fc', 16):
-            rx = self.serial.read(6)
-            (u, c, d) = self.pkt.unpack(rx)
-            tx = radiometer_t()
-            tx.utime = int(time.time() * 1e6)
-            tx.cumulative_count = c
-            tx.cumulative_duration = d
-            self.lcm.publish("{0}o".format(self.prefix), tx.encode())
-        elif len(hdr) == 2 and hdr[0] == int('fd', 16):
+        elif len(hdr) == 2 and self.hdr.unpack(hdr) == 0xFF: # clock packet
+            rx = self.serial.read(self.clkpkt.size)
+            (h, ISR, LOG) = self.clkpkt.unpack(rx)
+            print("ISR: {0}, LOG: {1}".format(ISR,LOG))
+            # self.lcm.publish("{0}_hdr".format(self.prefix), head.encode())
+        elif len(hdr) == 2 and self.hdr.unpack(hdr) == 0xFE: # heartbeat
             print('rx heartbeat message')
-        else:
-            print("unknown header: {0:x}".format(hdr))
-            self.serial.flushInput()
+            rx = self.serial.read(self.hrtpkt.size)
+            hbval = self.hbpkt.unpack(rx)
+            print("{0}\n".format(hbval))
+            # self.lcm.publish("{0}_hb".format(self.prefix), heartbeat.encode())
+        else: # shouldn't we have a positive identifier, according to Jan15 email?
+            rx = self.serial.read(self.datpkt.size)
+            if(len(rx) != self.datpkt.size):
+                print("unknown header: {0:x}".format(hdr))
+                self.serial.flushInput()
+            else:
+                tx = bytes_t()
+                tx.utime = int(time.time() * 1e6)
+                tx.length = self.datpkt.size + self.hdr.size
+                tx.data = hdr + rx
+                self.lcm.publish("{0}o".format(self.prefix), tx.encode())
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
