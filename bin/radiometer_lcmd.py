@@ -21,9 +21,8 @@ class RadiometerDaemon:
         self.lcm = lcm.LCM()
         self.prefix = prefix
         self.hdr = deque(maxlen = 4)
-        self.clkpkt = struct.Struct('<2L') # 2 unsigned long bytes (ISR clock cycles, LOG clock cycles)
         self.hrtpkt = struct.Struct('<5L') # 5 unsigned long bytes (UTC, Pulse count, nsHI, irradiance, end token)
-        self.datpkt = struct.Struct('<L50H')
+        self.datpkt = struct.Struct('<2L50H') # 2 unsigned long bytes (ISR clock cycles, LOG clock cycles)
 
         self.subscriptions = []
         self.subscriptions.append(self.lcm.subscribe(
@@ -47,15 +46,12 @@ class RadiometerDaemon:
         while(self.serial.in_waiting > 0):
             # assert (len(self.hdr) == self.hdr.maxlen), "header too short"
             bsh = bytes(self.hdr)
-            if bsh == b'\xff\x00\xff\x00':
+            if bsh == b'\x00\xff\x00\xff':
                 suffix = 'o'
                 pkt_size = self.datpkt.size
-            elif bsh == b'\xff\x00\xfe\x00':
+            elif bsh == b'\x00\xfe\x00\xfe':
                 suffix = 'h'
                 pkt_size = self.hrtpkt.size
-            elif bsh == b'\xff\x00\xfd\x00':
-                suffix = 'c'
-                pkt_size = self.clkpkt.size
             else:
                 suffix = 'r'
                 pkt_size = 0

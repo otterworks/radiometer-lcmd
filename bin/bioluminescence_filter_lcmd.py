@@ -39,7 +39,7 @@ class BioluminescenceFilter:
         """receive scaled log counts and publish estimated irradiance
         """
         rx = bytes_t.decode(data)
-        fmt = '<8x{0}H'.format(int((rx.length-8)/2)) # nominal 2HL50H, but we just want 50H
+        fmt = '<12x{0}H'.format(int((rx.length-12)/2)) # nominal 2H2L50H, but we just want 50H
         self.data.extend(struct.unpack(fmt, rx.data))
         if len(self.data) == self.data.maxlen:
             tx = radiometer_t()
