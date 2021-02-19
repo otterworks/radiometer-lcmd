@@ -4,16 +4,27 @@ Radiometer LCM Daemon
 Prerequisites
 -------------
 
-Install [mesobot-lcmtypes] 0.2.10 or later on the tx2.
-Be sure to install the python package (e.g., with `make pip-install`).
+- Install python3 and python3-pip.
 
-You may need to adjust `PYTHONPATH` so that python can find LCM and the
-types package.
+- Install LCM with python3 bindings.
 
-Install python3, pyserial, and linuxfd from pip on the external machine.
+- Install pyserial and linuxfd from pip.
 
-Install [mesobot-lcmtypes] 0.2.10 or later on the external machine if you
-want to see decodeable data on `mesobot-spy`.
+  *TODO*: ^do this^ with `requirements.txt`
+
+
+You may need to adjust `PYTHONPATH` so that python can find LCM.
+and the
+
+Install
+-------
+
+```shell
+lcm-gen --python --ppath radiometer_lcmtypes radiometer_lcmtypes/*.lcm
+python3 -m pip install . # to install the lcmtypes under `PYTHONPATH`
+```
+
+*TODO* Reorganize to install the daemons under `PYTHONPATH` as well.
 
 Testing
 -------
@@ -33,11 +44,3 @@ export LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=1
 Plug in the radiometer tester circuit from Jacob, picocom into the teensy,
 and press `l` (lowercase L) to start it sending data.
 
-and if the external machine is connected to the same multicast network, you
-can see the data on lcm using `mesobot-spy`.
-
-```shell
-mesobot-spy # will open a java GUI
-```
-
-[mesobot-lcmtypes]: https://bitbucket.org/whoidsl/mesobot-lcmtypes

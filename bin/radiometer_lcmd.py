@@ -9,7 +9,7 @@ import lcm
 
 from collections import deque
 
-from mesobot_lcmtypes.raw import bytes_t
+from radiometer_lcmtypes.raw import bytes_t
 
 
 class RadiometerDaemon:

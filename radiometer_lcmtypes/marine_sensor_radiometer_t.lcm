@@ -1,0 +1,6 @@
+package marine_sensor;
+
+struct radiometer_t {
+  int64_t utime;
+  double downwelling_photon_spherical_irradiance; // mol m-2 s-1
+}

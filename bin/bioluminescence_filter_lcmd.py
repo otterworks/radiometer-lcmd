@@ -13,8 +13,8 @@ import lcm
 from collections import deque
 from numpy import median
 
-from mesobot_lcmtypes.raw import bytes_t
-from mesobot_lcmtypes.marine_sensor import radiometer_t
+from radiometer_lcmtypes.raw import bytes_t
+from radiometer_lcmtypes.marine_sensor import radiometer_t
 # downwelling_photon_spherical_irradiance mol m-2 s-1
 # | downwelling_photon_flux_in_sea_water mol m-2 s-1
 # | downwelling_photon_radiance_in_sea_water mol m-2 s-1 sr-1

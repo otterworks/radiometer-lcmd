@@ -1,0 +1,9 @@
+package raw;
+
+struct bytes_t { // a generic container for opaque binary data
+  int64_t utime; // microseconds since 1970-01-01T00:00:00
+  int32_t length;
+  byte    data[length];
+}
+
+// see also: bot_core.raw_t
