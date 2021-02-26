@@ -45,10 +45,10 @@ class RadiometerDaemon:
         self.tkn.extend(self.serial.read(self.tkn.maxlen))
         while pkt_size == 0:
             bsh = bytes(self.tkn)
-            if bsh == bytes.fromhex('ff00ff00'):
+            if bsh == bytes.fromhex('80008000'):
                 suffix = 'o'
                 pkt_size = self.data.size
-            elif bsh == bytes.fromhex('fe00fe00'):
+            elif bsh == bytes.fromhex('81118111'):
                 suffix = 'h'
                 pkt_size = self.heartbeat.size
             else:
