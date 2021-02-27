@@ -44,3 +44,8 @@ export LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=1
 Plug in the radiometer tester circuit from Jacob, picocom into the teensy,
 and press `l` (lowercase L) to start it sending data.
 
+ToDo
+----
+
+Refactor into a FOLRadiometer class with the scaling, descaling, struct defs,
+then use that to rewrite the lcmd and spoof executables.

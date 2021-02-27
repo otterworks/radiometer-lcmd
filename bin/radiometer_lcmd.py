@@ -8,8 +8,9 @@ import time
 import lcm
 
 from collections import deque
+from numpy import log10, nan
 
-from radiometer_lcmtypes.raw import bytes_t
+from radiometer_lcmtypes.raw import bytes_t, floats_t
 
 
 class RadiometerDaemon:
@@ -68,8 +69,38 @@ class RadiometerDaemon:
             tx.length = len(self.tkn) + sz
             tx.data = bytes(self.tkn) + rx
             self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
+            if(suffix == 'o' and sz == self.data.size):
+                self.descale_and_publish(tx)
         else:
             print('tried to read {0} but only got {1}'.format(sz, len(rx)))
+
+    def descale_and_publish(self, raw, suffix='d'):
+        tx = floats_t()
+        tx.utime = raw.utime
+        b = raw.data[4:] # assert len(b) = self.data.size
+        po = self.data.unpack(b)[2:] # skip the extras
+        tx.length = len(po) # assert = 50
+        tx.data = [self.descale(ct) for ct in po]
+        self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
+
+    def descale(self, count, crossover=2**15, postmultiplier=(2**16)/7.0):
+        """
+        POSTMULTIPLIER = (2^16)/7.0
+        MAX_LINEAR = 0x7FFF # (2^15)-1
+        MIN_LOGARITHMIC = 0xA523 # 2^15 ~~> 42275
+        """
+        if count < crossover:
+            return count
+        elif count >= self.scale(crossover, crossover, postmultiplier):
+            return 10.0**(count/postmultiplier)
+        else:
+            return nan
+
+    def scale(self, count, crossover=2**15, postmultiplier=(2**16)/7.0):
+        if count < crossover:
+            return count
+        else:
+            return postmultiplier*log10(count)
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
