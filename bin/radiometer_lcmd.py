@@ -20,7 +20,7 @@ class RadiometerDaemon:
         """Define serial and LCM interfaces, and subscribe to input."""
         self.serial = serial.Serial(dev, baudrate=38400, timeout=1)
         self.lcm = lcm.LCM()
-        self.prefix = prefix
+        self.prefix = prefix + dev[-1]
         self.tkn = deque(maxlen = 4)
         self.heartbeat = struct.Struct('<7L') # 7 uint32 (UTC, millis, Pulse count, nsHI, irradiance, inclinometer, end token)
         self.data = struct.Struct('<2L50H') # 2 uint32 (ISR clock cycles, LOG clock cycles), then 50 uint16
