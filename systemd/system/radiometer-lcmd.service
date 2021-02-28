@@ -1,0 +1,17 @@
+[Unit]
+Description=LCM daemon for radiometer
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=1s
+User=mesobot
+Group=mesobot
+Environment="LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=1"
+# ExecStart=/usr/local/bin/vesc-can-lcmd can0
+ExecStart=/home/mesobot/src/tx2/radiometer-lcmd/bin/radiometer_lcmd.py /dev/ttyUSB0
+# TODO: revise the line above so the unit takes tty as an arg
+
+[Install]
+WantedBy=default.target
