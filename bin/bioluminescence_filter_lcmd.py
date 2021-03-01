@@ -11,9 +11,9 @@ import time
 import lcm
 
 from collections import deque
-from numpy import median
+from numpy import percentile
 
-from radiometer_lcmtypes.raw import bytes_t
+from radiometer_lcmtypes.raw import floats_t
 from radiometer_lcmtypes.marine_sensor import radiometer_t
 # downwelling_photon_spherical_irradiance mol m-2 s-1
 # | downwelling_photon_flux_in_sea_water mol m-2 s-1
@@ -23,9 +23,10 @@ from radiometer_lcmtypes.marine_sensor import radiometer_t
 
 class BioluminescenceFilter:
 
-    def __init__(self, width=2000, verbose=0):
+    def __init__(self, width=2000, percentile=10, verbose=0):
         self.lcm = lcm.LCM()
         self.data = deque(maxlen=width)
+        self.percentile = percentile
         self.verbose = verbose
 
     def estimate_ambient(self,):
@@ -33,25 +34,25 @@ class BioluminescenceFilter:
 
         This does the heavly lifting.
         """
-        return median(self.data) # TODO: implement Dana's existing filter
+        return percentile(self.data, self.percentile) # TODO: implement Dana's existing filter
 
     def handler(self, channel, data):
         """receive scaled log counts and publish estimated irradiance
         """
-        rx = bytes_t.decode(data)
-        fmt = '<12x{0}H'.format(int((rx.length-12)/2)) # nominal 2H2L50H, but we just want 50H
-        self.data.extend(struct.unpack(fmt, rx.data))
+        rx = floats_t.decode(data)
+        self.data.extend(rx.data)
         if len(self.data) == self.data.maxlen:
             tx = radiometer_t()
             tx.utime = rx.utime
             tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
             print(tx.downwelling_photon_spherical_irradiance)
-            self.lcm.publish("{0}f".format(channel), tx.encode())
+            self.lcm.publish("{0}{1}p".format(channel, self.percentile),
+                    tx.encode())
         else:
             print("window not full: {0} < {1}".format(len(self.data),
                 self.data.maxlen))
 
-    def filter(self, channel='RADo'):
+    def filter(self, channel='RAD2d'):
         """Connect to LCM and handle."""
 
         subscription = self.lcm.subscribe(channel, self.handler)
@@ -63,21 +64,26 @@ class BioluminescenceFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RADo', width=2000, verbose=0):
+def main(channel='RAD2d', width=2000, percentile=10, verbose=0):
     """Run as a daemon."""
-    bf = BioluminescenceFilter(width=width, verbose=verbose)
+    bf = BioluminescenceFilter(width=width, percentile=percentile,
+            verbose=verbose)
     bf.filter(channel);
 
 
 if __name__ == "__main__":
     import argparse
-    P = argparse.ArgumentParser(description="LCM daemon to filter radiometer data")
-    P.add_argument('-v', '--verbose', action='count', default=0,
+    p = argparse.ArgumentParser(description="LCM daemon to filter radiometer data")
+    p.add_argument('-v', '--verbose', action='count', default=0,
                    help='display verbose output')
-    P.add_argument('-V', '--version', action='version',
+    p.add_argument('-V', '--version', action='version',
                    version='%(prog)s 0.0.1',
                    help='display version information and exit')
-    P.add_argument('-c', '--channel', default='RADo',
+    p.add_argument('-c', '--channel', default='RAD2d',
                    help='channel to listen on')
-    A = P.parse_args()
-    main(**A.__dict__)
+    p.add_argument('-p', '--percentile', type=int, default=10,
+                   help='percentile to filter at')
+
+
+    a = p.parse_args()
+    main(**a.__dict__)
