@@ -21,7 +21,7 @@ from radiometer_lcmtypes.marine_sensor import radiometer_t
 # + bioluminescent_photon_rate_in_sea_water s-1 m-3
 
 
-class BioluminescenceFilter:
+class BioluminescencePercentileFilter:
 
     def __init__(self, width=2000, percentile=10, verbose=0):
         self.lcm = lcm.LCM()
@@ -32,7 +32,7 @@ class BioluminescenceFilter:
     def estimate_ambient(self,):
         """Estimate the ambient *downwelling_photon_spherical_irradiance*
 
-        This does the heavly lifting.
+        This does the heavy lifting.
         """
         return percentile(self.data, self.percentile) # TODO: implement Dana's existing filter
 
@@ -45,10 +45,12 @@ class BioluminescenceFilter:
             tx = radiometer_t()
             tx.utime = rx.utime
             tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
-            print(tx.downwelling_photon_spherical_irradiance)
-            self.lcm.publish("{0}{1}p".format(channel, self.percentile),
-                    tx.encode())
-        else:
+            if self.verbose > 0:
+                print(tx.downwelling_photon_spherical_irradiance)
+            tx_channel = "{0}{1}p{2}w".format(channel, self.percentile,
+                    self.data.maxlen)
+            self.lcm.publish(tx_channel, tx.encode())
+        elif self.verbose > -1:
             print("window not full: {0} < {1}".format(len(self.data),
                 self.data.maxlen))
 
@@ -64,9 +66,9 @@ class BioluminescenceFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RAD2d', width=2000, percentile=10, verbose=0):
+def main(channel='RAD2d', width=2000, percentile=1, verbose=0):
     """Run as a daemon."""
-    bf = BioluminescenceFilter(width=width, percentile=percentile,
+    bf = BioluminescencePercentileFilter(width=width, percentile=percentile,
             verbose=verbose)
     bf.filter(channel);
 
@@ -81,9 +83,10 @@ if __name__ == "__main__":
                    help='display version information and exit')
     p.add_argument('-c', '--channel', default='RAD2d',
                    help='channel to listen on')
-    p.add_argument('-p', '--percentile', type=int, default=10,
+    p.add_argument('-p', '--percentile', type=float, default=1,
                    help='percentile to filter at')
-
+    p.add_argument('-w', '--width', type=int, default=2000,
+                   help='window width in samples')
 
     a = p.parse_args()
     main(**a.__dict__)
