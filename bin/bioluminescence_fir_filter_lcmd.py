@@ -18,7 +18,8 @@ from scipy.signal import convolve
 #    - scipy.signal.fftconvolve
 #    - scipy.signal.convolve
 #    depending on size/shape of input arrays
-from scipy.signal import firwin
+# from scipy.signal import firwin
+from numpy import ones
 
 from radiometer_lcmtypes.raw import floats_t
 from radiometer_lcmtypes.marine_sensor import radiometer_t
@@ -35,7 +36,7 @@ class BioluminescenceFIRFilter:
         self.npackets = npackets
         self.data = deque(maxlen=2*ntaps)
         self.minima = deque(maxlen=npackets)
-        self.window = firwin(ntaps, f)
+        self.window = ones(ntaps) / ntaps
         self.verbose = verbose
 
     def estimate_ambient(self,):
