@@ -49,3 +49,5 @@ ToDo
 
 Refactor into a FOLRadiometer class with the scaling, descaling, struct defs,
 then use that to rewrite the lcmd and spoof executables.
+
+Put 1 Hz summer into base daemon (to avoid issues when network is overloaded).
