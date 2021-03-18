@@ -6,9 +6,8 @@ import matplotlib.pyplot as plt
 
 from lcm import EventLog
 
-from mesobot_lcmtypes.raw import floats_t
-from mesobot_lcmtypes.marine_sensor import radiometer_t, pressure_depth_t
-# ^ TODO use radiometer_lcmtypes instead...
+from radiometer_lcmtypes.raw import floats_t
+from radiometer_lcmtypes.marine_sensor import radiometer_t, pressure_depth_t
 
 el = EventLog('/wdb/mesobot/2021-02.Bermuda/logs/mesobot037.lcmlog','r')
 
