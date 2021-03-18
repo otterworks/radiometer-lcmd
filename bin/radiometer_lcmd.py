@@ -18,6 +18,9 @@ class RadiometerDaemon:
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define serial and LCM interfaces, and subscribe to input."""
+        self.crossover = 2**15
+        self.postmultiplier = (2**16)/7.0
+        self.minlog = self.scale(self.crossover)
         self.serial = serial.Serial(dev, baudrate=38400, timeout=1)
         self.lcm = lcm.LCM()
         self.prefix = prefix + dev[-1]
@@ -83,24 +86,26 @@ class RadiometerDaemon:
         tx.data = [self.descale(ct) for ct in po]
         self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
 
-    def descale(self, count, crossover=2**15, postmultiplier=(2**16)/7.0):
+    def descale(self, count):
         """
         POSTMULTIPLIER = (2^16)/7.0
         MAX_LINEAR = 0x7FFF # (2^15)-1
         MIN_LOGARITHMIC = 0xA523 # 2^15 ~~> 42275
         """
-        if count < crossover:
+        count = float(count)
+        if count < self.crossover:
             return count
-        elif count >= self.scale(crossover, crossover, postmultiplier):
-            return 10.0**(count/postmultiplier)
+        elif count >= self.scale(self.crossover):
+            print('{0} log->lin {1}'.format(count, 10.0**(count/self.postmultiplier)))
+            return 10.0**(count/self.postmultiplier)
         else:
             return nan
 
-    def scale(self, count, crossover=2**15, postmultiplier=(2**16)/7.0):
-        if count < crossover:
+    def scale(self, count):
+        if count < self.crossover:
             return count
         else:
-            return postmultiplier*log10(count)
+            return self.postmultiplier*log10(count)
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
