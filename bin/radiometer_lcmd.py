@@ -96,7 +96,7 @@ class RadiometerDaemon:
         if count < self.crossover:
             return count
         elif count >= self.scale(self.crossover):
-            print('{0} log->lin {1}'.format(count, 10.0**(count/self.postmultiplier)))
+            # print('{0} log->lin {1}'.format(count, 10.0**(count/self.postmultiplier)))
             return 10.0**(count/self.postmultiplier)
         else:
             return nan
