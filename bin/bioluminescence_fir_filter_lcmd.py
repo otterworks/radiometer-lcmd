@@ -77,10 +77,10 @@ class BioluminescenceFIRFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RAD2d', verbose=0):
+def main(channel='RAD2d', verbose=0, taps=50, packets=200):
     """Run as a daemon."""
-    bf = BioluminescenceFIRFilter(verbose=verbose)
-    bf.filter(channel);
+    bf = BioluminescenceFIRFilter(verbose=verbose, ntaps=taps, npackets=packets)
+    bf.filter(channel)
 
 
 if __name__ == "__main__":
@@ -93,7 +93,10 @@ if __name__ == "__main__":
                    help='display version information and exit')
     p.add_argument('-c', '--channel', default='RAD2d',
                    help='channel to listen on')
-
+    p.add_argument('-t', '--taps', type=int, default=50,
+                   help='number of samples in inner window (filter taps)')
+    p.add_argument('-p', '--packets', type=int, default=200,
+                   help='number of packets in outer window')
 
     a = p.parse_args()
     main(**a.__dict__)
