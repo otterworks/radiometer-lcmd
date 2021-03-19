@@ -83,7 +83,7 @@ if __name__ == "__main__":
                    help='display version information and exit')
     p.add_argument('-c', '--channel', default='RAD2d',
                    help='channel to listen on')
-    p.add_argument('-p', '--percentile', type=float, default=1,
+    p.add_argument('-p', '--percentile', type=int, default=1,
                    help='percentile to filter at')
     p.add_argument('-w', '--width', type=int, default=2000,
                    help='window width in samples')
