@@ -30,7 +30,7 @@ class RollingMeanFilter:
         """receive scaled log counts and publish estimated irradiance
         """
         rx = radiometer_t.decode(data)
-        self.data.append(rx.downwelling_photon_spherical_irradiance)
+        self.data.append(rx.downwelling_photon_spherical_irradiance*1e3)
         if len(self.data) == self.data.maxlen:
             rx.downwelling_photon_spherical_irradiance = mean(self.data)
             rx.downwelling_photon_spherical_irradiance -= 900
