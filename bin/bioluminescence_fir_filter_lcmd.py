@@ -47,7 +47,7 @@ class BioluminescenceFIRFilter:
         filtered = convolve(self.data, self.window, mode='valid')
         # assert len(filtered) == ntaps + 1
         self.minima.append(min(filtered))
-        return min(self.minima)
+        return min(self.minima) * 1e3
 
     def handler(self, channel, data):
         """receive scaled log counts and publish estimated irradiance
