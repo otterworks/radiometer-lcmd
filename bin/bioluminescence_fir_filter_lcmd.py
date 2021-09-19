@@ -31,7 +31,7 @@ from radiometer_lcmtypes.marine_sensor import radiometer_t
 
 class BioluminescenceFIRFilter:
 
-    def __init__(self, npackets=40, ntaps=50, f=0.95, verbose=0):
+    def __init__(self, npackets=200, ntaps=50, f=0.95, verbose=0):
         self.lcm = lcm.LCM()
         self.npackets = npackets
         self.data = deque(maxlen=2*ntaps)
