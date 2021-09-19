@@ -11,15 +11,7 @@ import time
 import lcm
 
 from collections import deque
-# from numpy import convolve
-from scipy.signal import convolve
-#  ^ chooses between:
-#    - numpy.convolve
-#    - scipy.signal.fftconvolve
-#    - scipy.signal.convolve
-#    depending on size/shape of input arrays
-# from scipy.signal import firwin
-from numpy import ones
+from numpy import mean
 
 from radiometer_lcmtypes.raw import floats_t
 from radiometer_lcmtypes.marine_sensor import radiometer_t
@@ -29,14 +21,12 @@ from radiometer_lcmtypes.marine_sensor import radiometer_t
 # + bioluminescent_photon_rate_in_sea_water s-1 m-3
 
 
-class BioluminescenceFIRFilter:
+class BioluminescenceAverager:
 
-    def __init__(self, npackets=200, ntaps=50, f=0.95, verbose=0):
+    def __init__(self, npackets=200, verbose=0):
         self.lcm = lcm.LCM()
         self.npackets = npackets
-        self.data = deque(maxlen=2*ntaps)
-        self.minima = deque(maxlen=npackets)
-        self.window = ones(ntaps) / ntaps
+        self.data = deque(maxlen=npackets)
         self.verbose = verbose
 
     def estimate_ambient(self,):
@@ -44,28 +34,24 @@ class BioluminescenceFIRFilter:
 
         This does the heavly lifting.
         """
-        filtered = convolve(self.data, self.window, mode='valid')
-        # assert len(filtered) == ntaps + 1
-        self.minima.append(min(filtered))
-        return min(self.minima) * 1e3
+        return mean(self.data)
 
     def handler(self, channel, data):
         """receive scaled log counts and publish estimated irradiance
         """
-        rx = floats_t.decode(data)
-        self.data.extend(rx.data)
+        rx = radiometer_t.decode(data)
+        self.data.append(rx.downwelling_photon_spherical_irradiance)
         if len(self.data) == self.data.maxlen:
-            tx = radiometer_t()
-            tx.utime = rx.utime
-            tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
-            print(tx.downwelling_photon_spherical_irradiance)
-            self.lcm.publish("{0}{1}fir".format(channel, self.npackets),
-                    tx.encode())
+            rx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
+            if self.verbose > 0:
+                print(rx.downwelling_photon_spherical_irradiance)
+            self.lcm.publish("{0}{1}mean".format(channel, self.npackets),
+                rx.encode())
         else:
             print("input buffer not full: {0} < {1}".format(len(self.data),
                 self.data.maxlen))
 
-    def filter(self, channel='RAD2d'):
+    def filter(self, channel='RAD2d200fir'):
         """Connect to LCM and handle."""
 
         subscription = self.lcm.subscribe(channel, self.handler)
@@ -77,9 +63,9 @@ class BioluminescenceFIRFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RAD2d', verbose=0, taps=50, packets=200):
+def main(channel='RAD2d200fir', verbose=0, packets=200):
     """Run as a daemon."""
-    bf = BioluminescenceFIRFilter(verbose=verbose, ntaps=taps, npackets=packets)
+    bf = BioluminescenceAverager(verbose=verbose, npackets=packets)
     bf.filter(channel)
 
 
@@ -91,10 +77,8 @@ if __name__ == "__main__":
     p.add_argument('-V', '--version', action='version',
                    version='%(prog)s 0.0.1',
                    help='display version information and exit')
-    p.add_argument('-c', '--channel', default='RAD2d',
+    p.add_argument('-c', '--channel', default='RAD2d200fir',
                    help='channel to listen on')
-    p.add_argument('-t', '--taps', type=int, default=50,
-                   help='number of samples in inner window (filter taps)')
     p.add_argument('-p', '--packets', type=int, default=200,
                    help='number of packets in outer window')
 
