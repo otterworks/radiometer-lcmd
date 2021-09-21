@@ -33,17 +33,13 @@ class RollingMeanFilter:
         self.data.append(rx.downwelling_photon_spherical_irradiance)
         if len(self.data) == self.data.maxlen:
             rx.downwelling_photon_spherical_irradiance = mean(self.data)
-            rx.downwelling_photon_spherical_irradiance -= 900
-            if rx.downwelling_photon_spherical_irradiance < 2:
-                rx.downwelling_photon_spherical_irradiance = 2
-                if self.verbose > 0:
-                  print('\t<2, setting to 2')
             if self.verbose > 0:
                 print(rx.downwelling_photon_spherical_irradiance)
-            tx_channel = "{0}5mean".format(channel) # TODO let channel name change according to args
+            tx_channel = "RAD2d200fir5mean" # TODO # This is TEMPORARY for 042
+#            tx_channel = "{0}5mean".format(channel) # TODO let channel name change according to args
             self.lcm.publish(tx_channel, rx.encode())
 
-    def filter(self, channel='RAD2d200fir'):
+    def filter(self, channel='RAD2d200iaf'):
         """Connect to LCM and handle."""
 
         subscription = self.lcm.subscribe(channel, self.handler)
@@ -55,7 +51,7 @@ class RollingMeanFilter:
             subscription.unsubscribe()
 
 
-def main(channel='RAD2d200fir', width=100, verbose=0):
+def main(channel='RAD2d200iaf', width=100, verbose=0):
     """Run as a daemon."""
     rmf = RollingMeanFilter(width=width, verbose=verbose)
     rmf.filter(channel);
@@ -69,7 +65,7 @@ if __name__ == "__main__":
     p.add_argument('-V', '--version', action='version',
                    version='%(prog)s 0.0.1',
                    help='display version information and exit')
-    p.add_argument('-c', '--channel', default='RAD2d200fir',
+    p.add_argument('-c', '--channel', default='RAD2d200iaf',
                    help='channel to listen on')
     p.add_argument('-w', '--width', type=int, default=100,
                    help='window width in ensembles [default 100, 5s]')

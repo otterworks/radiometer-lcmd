@@ -1,0 +1,15 @@
+[Unit]
+Description=LCM daemon for radiometer filtering
+After=network.target multicast-static.service radiometer-lcmd.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=3s
+User=mesobot
+Group=mesobot
+Environment="LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=1"
+ExecStart=/home/mesobot/src/tx2/radiometer-lcmd/bin/bioluminescence_percentile_filter_lcmd.py -c RAD2d -p 1 -w 10000
+
+[Install]
+WantedBy=default.target

@@ -63,8 +63,6 @@ class RadiometerDaemon:
                 self.tkn.extend(self.serial.read(1))
 
     def handle_pkt(self, suffix='r', sz=0):
-        print("handling packet with header: {0}, size: {1}".format(
-            bytes(self.tkn).hex(), sz))
         rx = self.serial.read(sz)
         if(len(rx) == sz):
             tx = bytes_t()
