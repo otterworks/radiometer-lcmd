@@ -27,9 +27,6 @@ class Accumulator:
         self.verbose = verbose
         self.suffix = suffix
 
-    def heartbeat_sync(self, channel, data):
-        self.data.clear()
-
     def handler(self, channel, data):
         """receive scaled log counts and publish estimated irradiance
         """
@@ -51,8 +48,6 @@ class Accumulator:
         """Connect to LCM and handle."""
 
         subscription = self.lcm.subscribe(channel, self.handler)
-        sync_subscription = self.lcm.subscribe(channel[:4] + 'h',
-                self.heartbeat_sync)
         try:
             while True:
                 self.lcm.handle()
