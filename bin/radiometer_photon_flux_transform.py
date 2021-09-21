@@ -9,25 +9,24 @@ import struct
 import time
 import lcm
 
-from numpy import array
-
 from radiometer_lcmtypes.raw import floats_t
 
 
-class PercentFullScaler:
+class Transformer:
 
     def __init__(self, verbose=0):
         self.lcm = lcm.LCM()
         self.verbose = verbose
+        self.suffix = 'fd' # flux density
 
     def handler(self, channel, data):
         """receive time high and publish percent 
         """
         rx = floats_t.decode(data)
-        rx.data = 16e-4 * array(rx.data);
-        self.lcm.publish("{0}p".format(channel[:4]), rx.encode())
+        rx.data = self.transform(rx.data)
+        self.lcm.publish("{0}{1}".format(channel[:4], self.suffix), rx.encode())
 
-    def filter(self, channel='RAD1t'):
+    def go(self, channel='RAD1t'):
         """Connect to LCM and handle."""
 
         subscription = self.lcm.subscribe(channel, self.handler)
@@ -38,16 +37,20 @@ class PercentFullScaler:
             print('stopped by user')
             subscription.unsubscribe()
 
+    def transform(self, x):
+        """This is the heavy lifter, but we don't know the transform yet.
+        """
+        return x
 
 def main(channel='RAD1t', verbose=0):
     """Run as a daemon."""
-    pfs = PercentFullScaler(verbose=verbose)
-    pfs.filter(channel);
+    OptimusPrime = Transformer(verbose=verbose)
+    OptimusPrime.go(channel);
 
 
 if __name__ == "__main__":
     import argparse
-    p = argparse.ArgumentParser(description="LCM daemon to filter radiometer data")
+    p = argparse.ArgumentParser(description="LCM daemon to transform radiometer data")
     p.add_argument('-v', '--verbose', action='count', default=0,
                    help='display verbose output')
     p.add_argument('-V', '--version', action='version',
