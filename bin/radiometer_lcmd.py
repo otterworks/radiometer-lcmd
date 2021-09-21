@@ -8,7 +8,6 @@ import time
 import lcm
 
 from collections import deque
-from numpy import log10, nan
 
 from radiometer_lcmtypes.raw import bytes_t, floats_t
 
@@ -18,9 +17,7 @@ class RadiometerDaemon:
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define serial and LCM interfaces, and subscribe to input."""
-        self.crossover = 2**15
         self.postmultiplier = (2**16)/7.0
-        self.minlog = self.scale(self.crossover)
         self.serial = serial.Serial(dev, baudrate=38400, timeout=1)
         self.lcm = lcm.LCM()
         self.prefix = prefix + dev[-1]
@@ -71,39 +68,17 @@ class RadiometerDaemon:
             tx.data = bytes(self.tkn) + rx
             self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
             if(suffix == 'o' and sz == self.data.size):
-                self.descale_and_publish(tx)
+                self.publish(tx)
         else:
             print('tried to read {0} but only got {1}'.format(sz, len(rx)))
 
-    def descale_and_publish(self, raw, suffix='d'):
+    def publish(self, raw, suffix='t'):
         tx = floats_t()
         tx.utime = raw.utime
         b = raw.data[4:] # assert len(b) = self.data.size
-        po = self.data.unpack(b)[2:] # skip the extras
-        tx.length = len(po) # assert = 50
-        tx.data = [self.descale(ct) for ct in po]
+        tx.data = self.data.unpack(b)[2:] # skip the extras
+        tx.length = len(tx.data) # assert = 50
         self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
-
-    def descale(self, count):
-        """
-        POSTMULTIPLIER = (2^16)/7.0
-        MAX_LINEAR = 0x7FFF # (2^15)-1
-        MIN_LOGARITHMIC = 0xA523 # 2^15 ~~> 42275
-        """
-        count = float(count)
-        if count < self.crossover:
-            return count
-        elif count >= self.scale(self.crossover):
-            # print('{0} log->lin {1}'.format(count, 10.0**(count/self.postmultiplier)))
-            return 10.0**(count/self.postmultiplier)
-        else:
-            return nan
-
-    def scale(self, count):
-        if count < self.crossover:
-            return count
-        else:
-            return self.postmultiplier*log10(count)
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
