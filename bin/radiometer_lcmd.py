@@ -17,7 +17,6 @@ class RadiometerDaemon:
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define serial and LCM interfaces, and subscribe to input."""
-        self.postmultiplier = (2**16)/7.0
         self.serial = serial.Serial(dev, baudrate=38400, timeout=1)
         self.lcm = lcm.LCM()
         self.prefix = prefix + dev[-1]
@@ -76,7 +75,7 @@ class RadiometerDaemon:
         tx = floats_t()
         tx.utime = raw.utime
         b = raw.data[4:] # assert len(b) = self.data.size
-        tx.data = self.data.unpack(b)[2:] # skip the extras
+        tx.data = [x * 16 for x in self.data.unpack(b)[2:]] # skip the extras
         tx.length = len(tx.data) # assert = 50
         self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
 
