@@ -71,13 +71,15 @@ class RadiometerDaemon:
         else:
             print('tried to read {0} but only got {1}'.format(sz, len(rx)))
 
-    def publish(self, raw, suffix='t'):
+    def publish(self, raw, tsuffix='t', psuffix='p'):
         tx = floats_t()
         tx.utime = raw.utime
         b = raw.data[4:] # assert len(b) = self.data.size
         tx.data = [x * 16 for x in self.data.unpack(b)[2:]] # skip the extras
         tx.length = len(tx.data) # assert = 50
-        self.lcm.publish("{0}{1}".format(self.prefix, suffix), tx.encode())
+        self.lcm.publish("{0}{1}".format(self.prefix, tsuffix), tx.encode())
+        tx.data = [x * 1e-4 for x in tx.data]
+        self.lcm.publish("{0}{1}".format(self.prefix, psuffix), tx.encode())
 
     def connect(self):
         """Connect serial to LCM and loop with epoll."""
