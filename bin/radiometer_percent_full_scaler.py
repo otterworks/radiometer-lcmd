@@ -24,7 +24,7 @@ class PercentFullScaler:
         """receive time high and publish percent 
         """
         rx = floats_t.decode(data)
-        rx.data = 16e-4 * array(rx.data);
+        rx.data = 1e-4 * array(rx.data);
         self.lcm.publish("{0}p".format(channel[:4]), rx.encode())
 
     def filter(self, channel='RAD1t'):
