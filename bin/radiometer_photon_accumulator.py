@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
+"""Bioluminescence filter for Future Ocean Lab radiometer data
+
+    Filters out spikes from bioluminescent events to give the ambient irradiance.
 """
 
-"""
+# TODO: This daemon is presently misnamed -- I've edited this one for
+# operational reasons because it will be easiest for the mesobot team to
+# activate during NA131 expedition, but we should re-name and update systemd
+# services before the next expedition.
 
 import select
 import serial
@@ -18,24 +24,36 @@ from radiometer_lcmtypes.marine_sensor import radiometer_t
 # | downwelling_photon_radiance_in_sea_water mol m-2 s-1 sr-1
 # + bioluminescent_photon_rate_in_sea_water s-1 m-3
 
+SAMPLES_PER_ENSEMBLE = 50
+DEFAULT_SORT_WIDTH = 200 # 200 ensembles @ 20 Hz ==> 10s
+DEFAULT_SUM_WIDTH = 20 # 20 ensembles @ 20 Hz ==> 1s
 
-class Accumulator:
 
-    def __init__(self, suffix = 'u', width=40, verbose=0):
+class AmbientDownwellingPhotonFluxEstimator:
+
+    def __init__(self, suffix = 'u', width=DEFAULT_SORT_WIDTH, verbose=0):
         self.lcm = lcm.LCM()
-        self.data = deque(maxlen=width)
+        self.data = deque(maxlen=width*SAMPLES_PER_ENSEMBLE)
         self.verbose = verbose
-        self.suffix = suffix
+
+    def estimate_ambient(self):
+        """Estimate the ambient *downwelling_photon_spherical_irradiance*
+
+        This does the heavly lifting.
+        """
+        tosort = list(self.data.copy())
+        tosort.sort()
+        return float(sum(tosort[:DEFAULT_SUM_WIDTH*SAMPLES_PER_ENSEMBLE]))
 
     def handler(self, channel, data):
         """receive scaled log counts and publish estimated irradiance
         """
         rx = floats_t.decode(data)
-        self.data.append(sum(rx.data))
+        self.data.extend(rx.data)
         if len(self.data) == self.data.maxlen:
             tx = radiometer_t()
             tx.utime = rx.utime
-            tx.downwelling_photon_spherical_irradiance = sum(self.data)
+            tx.downwelling_photon_spherical_irradiance = self.estimate_ambient()
             if self.verbose > 0:
                 print(tx.downwelling_photon_spherical_irradiance)
             tx_channel = "{0}{1}".format(channel[:4], self.suffix)
@@ -56,10 +74,10 @@ class Accumulator:
             subscription.unsubscribe()
 
 
-def main(channel='RAD1fd', suffix='u', width=40, verbose=0):
+def main(channel='RAD1fd', suffix='u', width=DEFAULT_SORT_WIDTH, verbose=0):
     """Run as a daemon."""
-    bf = Accumulator(width=width, verbose=verbose)
-    bf.filter(channel);
+    est = AmbientDownwellingPhotonFluxEstimator(suffix=suffix, width=width, verbose=verbose)
+    est.filter(channel);
 
 
 if __name__ == "__main__":
@@ -74,8 +92,10 @@ if __name__ == "__main__":
                    help='channel to listen on')
     p.add_argument('-s', '--suffix', default='u',
                    help='suffix for filter output')
-    p.add_argument('-w', '--width', type=int, default=40,
+    p.add_argument('-w', '--width', type=int, default=DEFAULT_SORT_WIDTH,
                    help='window width in ensembles')
 
     a = p.parse_args()
+    a.update(dict(width=DEFAULT_SORT_WIDTH))
+    #TODO rm ^ because it was added to avoid having to revise and reinstall the systemd unit during NA131
     main(**a.__dict__)
