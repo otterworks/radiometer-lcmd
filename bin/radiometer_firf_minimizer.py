@@ -72,10 +72,10 @@ class AmbientDownwellingPhotonFluxEstimator:
             subscription.unsubscribe()
 
 
-def main(channel='RAD1fd', suffix='u', width=40, npackets=200, ntaps=50, verbose=0):
+def main(channel='RAD1fd', suffix='u', width=40, packets=200, taps=50, verbose=0):
     """Run as a daemon."""
     est = AmbientDownwellingPhotonFluxEstimator(suffix=suffix,
-            npackets=npackets, ntaps=ntaps, verbose=verbose)
+            npackets=packets, ntaps=taps, verbose=verbose)
     est.filter(channel);
 
 
