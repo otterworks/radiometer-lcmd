@@ -34,6 +34,7 @@ class AmbientDownwellingPhotonFluxEstimator:
     def __init__(self, suffix = 'u', width=DEFAULT_SORT_WIDTH, verbose=0):
         self.lcm = lcm.LCM()
         self.data = deque(maxlen=width*SAMPLES_PER_ENSEMBLE)
+        self.suffix = suffix
         self.verbose = verbose
 
     def estimate_ambient(self):
@@ -96,6 +97,6 @@ if __name__ == "__main__":
                    help='window width in ensembles')
 
     a = p.parse_args()
-    a.update(dict(width=DEFAULT_SORT_WIDTH))
+    a.__dict__.update(dict(width=DEFAULT_SORT_WIDTH))
     #TODO rm ^ because it was added to avoid having to revise and reinstall the systemd unit during NA131
     main(**a.__dict__)
