@@ -4,11 +4,6 @@
     Filters out spikes from bioluminescent events to give the ambient irradiance.
 """
 
-# TODO: This daemon is presently misnamed -- I've edited this one for
-# operational reasons because it will be easiest for the mesobot team to
-# activate during NA131 expedition, but we should re-name and update systemd
-# services before the next expedition.
-
 import select
 import serial
 import struct
@@ -40,15 +35,14 @@ class AmbientDownwellingPhotonFluxEstimator:
     def estimate_ambient(self):
         """Estimate the ambient *downwelling_photon_spherical_irradiance*
 
-        This does the heavly lifting.
+        This does the heavy lifting.
         """
         tosort = list(self.data.copy())
         tosort.sort()
-        return float(sum(tosort[:DEFAULT_SUM_WIDTH*SAMPLES_PER_ENSEMBLE]))
+        amb = float(sum(tosort[:DEFAULT_SUM_WIDTH*SAMPLES_PER_ENSEMBLE]))
+        return max([amb, 1e-16]) # make output log10-safe
 
     def handler(self, channel, data):
-        """receive scaled log counts and publish estimated irradiance
-        """
         rx = floats_t.decode(data)
         self.data.extend(rx.data)
         if len(self.data) == self.data.maxlen:
@@ -97,6 +91,4 @@ if __name__ == "__main__":
                    help='window width in ensembles')
 
     a = p.parse_args()
-    a.__dict__.update(dict(width=DEFAULT_SORT_WIDTH))
-    #TODO rm ^ because it was added to avoid having to revise and reinstall the systemd unit during NA131
     main(**a.__dict__)

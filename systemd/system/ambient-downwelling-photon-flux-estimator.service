@@ -1,6 +1,6 @@
 [Unit]
 Description=LCM daemon for radiometer
-After=radiometer-lcmd.service
+After=radiometer-photon-flux-transformer.service
 
 [Service]
 Type=simple
@@ -9,7 +9,7 @@ RestartSec=1s
 User=mesobot
 Group=mesobot
 Environment="LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=0"
-ExecStart=/home/mesobot/src/tx2/radiometer-lcmd/bin/radiometer_photon_flux_transform.py -c RAD1t
+ExecStart=/home/mesobot/src/tx2/radiometer-lcmd/bin/ambient_downwelling_photon_flux_estimator.py -w 200 -s u -c RAD1fd
 
 [Install]
 WantedBy=default.target
