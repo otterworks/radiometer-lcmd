@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """radiometer_lcmd - LCM daemon for radiometer."""
 
 import select
@@ -9,11 +8,11 @@ import lcm
 
 from collections import deque
 
-from radiometer_lcmtypes.raw import bytes_t, floats_t
+from ..lcmtypes.raw import bytes_t, floats_t
 
 
-class RadiometerDaemon:
-    """LCM daemon for radiometer."""
+class SerialDaemon:
+    """Serial LCM daemon for radiometer."""
 
     def __init__(self, dev='/dev/ttyUSB1', prefix='RAD'):
         """Define serial and LCM interfaces, and subscribe to input."""
@@ -101,24 +100,3 @@ class RadiometerDaemon:
             epoll.unregister(self.serial.fileno())
             epoll.unregister(self.lcm.fileno())
             epoll.close()
-
-
-def main(dev="/dev/ttyUSB1", prefix='RAD', verbose=0):
-    """Run as a daemon."""
-    bridge = RadiometerDaemon(dev, prefix)
-    bridge.connect()
-
-
-if __name__ == "__main__":
-    import argparse
-    P = argparse.ArgumentParser(description="LCM daemon for radiometer")
-    P.add_argument('-v', '--verbose', action='count', default=0,
-                   help='display verbose output')
-    P.add_argument('-V', '--version', action='version',
-                   version='%(prog)s 0.0.1',
-                   help='display version information and exit')
-    P.add_argument('dev', help='the serial device to use')
-    P.add_argument('-p', '--prefix', default='RAD',
-                   help='prefix to pub/sub with')
-    A = P.parse_args()
-    main(**A.__dict__)

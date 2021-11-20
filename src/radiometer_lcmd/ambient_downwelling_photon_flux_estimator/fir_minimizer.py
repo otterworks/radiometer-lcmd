@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""
-
-"""
-
 import select
 import serial
 import struct
@@ -14,15 +9,17 @@ from collections import deque
 from scipy.signal import convolve
 from numpy import ones
 
-from radiometer_lcmtypes.raw import floats_t
-from radiometer_lcmtypes.marine_sensor import radiometer_t
+from ..lcmtypes.raw import floats_t
+from ..lcmtypes.marine_sensor import radiometer_t
 # downwelling_photon_spherical_irradiance mol m-2 s-1
 # | downwelling_photon_flux_in_sea_water mol m-2 s-1
 # | downwelling_photon_radiance_in_sea_water mol m-2 s-1 sr-1
 # + bioluminescent_photon_rate_in_sea_water s-1 m-3
 
 
-class AmbientDownwellingPhotonFluxEstimator:
+# TODO: This FIR minimizer and the other estimator should both be subclasses of
+# a general estimator class.
+class FIRMinimizer:
 
     def __init__(self, suffix = 'u', npackets=200, ntaps=50, f=0.95, verbose=0):
         self.lcm = lcm.LCM()
@@ -36,7 +33,7 @@ class AmbientDownwellingPhotonFluxEstimator:
     def estimate_ambient(self,):
         """Estimate the ambient *downwelling_photon_spherical_irradiance*
 
-        This does the heavly lifting.
+        This does the heavy lifting.
         """
         filtered = convolve(self.data, self.window, mode='valid')
         # assert len(filtered) == ntaps + 1
@@ -44,8 +41,6 @@ class AmbientDownwellingPhotonFluxEstimator:
         return min(self.minima)
 
     def handler(self, channel, data):
-        """receive scaled log counts and publish estimated irradiance
-        """
         rx = floats_t.decode(data)
         self.data.extend(rx.data)
         if len(self.data) == self.data.maxlen:
@@ -74,8 +69,7 @@ class AmbientDownwellingPhotonFluxEstimator:
 
 def main(channel='RAD1fd', suffix='u', width=40, packets=200, taps=50, verbose=0):
     """Run as a daemon."""
-    est = AmbientDownwellingPhotonFluxEstimator(suffix=suffix,
-            npackets=packets, ntaps=taps, verbose=verbose)
+    est = FIRMinimizer(suffix=suffix, npackets=packets, ntaps=taps, verbose=verbose)
     est.filter(channel);
 
 

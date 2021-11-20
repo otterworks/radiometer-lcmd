@@ -1,3 +1,6 @@
+dist/
+*.egg-info
+
 *.c
 *.h
 *.hpp
@@ -9,7 +12,7 @@
 *.xz
 *.pc
 
-radiometer_lcmtypes/
+src/radiometer_lcmd/lcmtypes/
 *.class
 *.java
 *.jar
