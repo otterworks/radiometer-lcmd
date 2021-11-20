@@ -9,8 +9,7 @@ RestartSec=1s
 User=mesobot
 Group=mesobot
 Environment="LCM_DEFAULT_URL=udpm://239.255.76.67:7667?ttl=0"
-ExecStart=/home/mesobot/src/tx2/radiometer-lcmd/bin/radiometer_lcmd.py /dev/ttyUSB1
-# TODO: revise the line above so the unit takes tty as an arg
+ExecStart=/usr/bin/env python3 -m radiometer_lcmd.serial_daemon /dev/ttyUSB1
 
 [Install]
 WantedBy=default.target
